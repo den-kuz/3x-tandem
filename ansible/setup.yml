@@ -1,0 +1,5 @@
+- name: Base server setup
+  hosts: vps
+  gather_facts: false
+  roles:
+    - { role: setup }

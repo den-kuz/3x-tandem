@@ -1,0 +1,38 @@
+- name: "Remove prev /etc/resolv.conf"
+  file:
+    path: /etc/resolv.conf
+    state: absent
+
+- name: "Set /etc/resolv.conf link"
+  file:
+    path: /etc/resolv.conf
+    src: /run/systemd/resolve/stub-resolv.conf
+    state: link
+
+- name: "Remove prev DNS"
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: "^DNS="
+    state: absent
+
+- name: "Remove prev FallbackDNS"
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    regexp: "^FallbackDNS="
+    state: absent
+
+- name: "Add DNS"
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    line: "DNS=8.8.8.8#dns.google 8.8.4.4#dns.google"
+
+- name: "Add FallbackDNS"
+  lineinfile:
+    path: /etc/systemd/resolved.conf
+    line: "FallbackDNS=1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com"
+
+- name: "Reload systemd-resolved"
+  service:
+    daemon_reload: true
+    name: systemd-resolved
+    state: restarted

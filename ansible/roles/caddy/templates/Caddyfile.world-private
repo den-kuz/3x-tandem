@@ -1,0 +1,44 @@
+{
+  admin off
+  https_port 4123
+  default_bind 127.0.0.1
+  servers {
+    protocols h1 h2
+    listener_wrappers {
+      proxy_protocol {
+        allow 127.0.0.1/32
+      }
+      tls
+    }
+  }
+  auto_https disable_redirects
+}
+
+https://{{domain}} {
+	basic_auth {
+		{{ CADDY_BASIC_USER }} {{ CADDY_BASIC_PASSWORD | string | password_hash('bcrypt') }}
+	}
+
+    log {
+        output file /logs/access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+
+    respond "Hello, world!"
+}
+
+http://{{domain}} {
+  bind 0.0.0.0
+  redir https://{host}{uri} permanent
+}
+
+:4123 {
+    tls internal
+    respond 204
+}
+:80 {
+    bind 0.0.0.0
+    respond 204
+}

@@ -1,0 +1,28 @@
+- name: "Create caddy data dir"
+  file:
+    path: "/data/caddy/"
+    state: directory
+
+- name: "Copy Caddyfile"
+  template:
+    src: "Caddyfile.{{ inventory_hostname }}"
+    dest: "/data/caddy/Caddyfile"
+
+- name: Create a caddy proxy container
+  community.docker.docker_container:
+    state: started
+    restart_policy: "always"
+    recreate: true
+    restart: true
+    name: "caddy"
+    hostname: "caddy"
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/data/caddy/data:/data"
+      - "/data/caddy/logs:/logs"
+      - "/data/caddy/config:/config"
+      - "/data/caddy/Caddyfile:/etc/caddy/Caddyfile"
+    network_mode: "host"

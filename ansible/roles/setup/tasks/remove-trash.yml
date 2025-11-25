@@ -1,0 +1,17 @@
+- name: "Stopping services"
+  service:
+    name: "{{ item }}"
+    state: stopped
+  ignore_errors: true
+  with_items:
+    - zabbix-agent
+    - zabbix-agent-timeweb
+
+- name: "Remove packages"
+  apt:
+    state: absent
+    update_cache: true
+    name: [
+      zabbix-agent,
+      zabbix-agent-timeweb,
+    ]

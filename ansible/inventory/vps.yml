@@ -1,0 +1,80 @@
+all:
+  vars:
+    # --- caddy ---
+    CADDY_DUMMY_BASIC_USER: "dummy"
+    CADDY_DUMMY_BASIC_PASSWORD: "<пароль_для_маскировки_под_basic_auth>"
+    # --- /caddy ---
+
+    # --- docker ---
+    DOCKER_DATA_DIR: "/data/docker/"
+    DOCKER_LOGIN_USER: "<пользователь_dockerhub>"
+    DOCKER_LOGIN_PASS: "<персональный_токен_dockerhub>"
+    # --- /docker ---
+
+vps:
+  hosts:
+    # --- зарубежная часть ---
+    world-private:
+      CADDY_BASIC_USER: "{{ CADDY_DUMMY_BASIC_USER }}"
+      CADDY_BASIC_PASSWORD: "{{ CADDY_DUMMY_BASIC_PASSWORD }}"
+
+      # домен где будет жить зарубежная часть
+      domain: "<домен_зарубежной_части>"
+      # хост сервера зарубежной части, по умолчанию domain
+      ansible_host: "{{ domain }}"
+
+      # это пользователь, под которым будет логиниться ansible на сервак
+      ansible_user: "root"
+      ansible_password: "<пароль_от_root>"
+      # если вход на сервак по ключу:
+      # - положи в папку ssh свой ключ
+      # - закомментируй ansible_password, раскомментируй ansible_ssh_private_key_file
+      # ansible_ssh_private_key_file: /root/.ssh/<название_файла_с_ssh_ключом>
+
+      # если ansible_user не root, то этот конфиг надо раскомментировать
+      # ansible_become: true
+      # ansible_become_user: root
+      # ansible_become_password: "<пароль_от_root>"
+
+      # закрываем всё ненужное файрволлами
+      UFW_RULES:
+        - { port: "22", proto: "tcp", rule: "allow" }
+        - { port: "22", proto: "udp", rule: "allow" }
+        - { port: "80", proto: "tcp", rule: "allow" }
+        - { port: "80", proto: "udp", rule: "allow" }
+        - { port: "443", proto: "tcp", rule: "allow" }
+        - { port: "443", proto: "udp", rule: "allow" }
+    # --- /зарубежная часть ---
+
+    # --- ru-часть ---
+    ru-private:
+      CADDY_BASIC_USER: "{{ CADDY_DUMMY_BASIC_USER }}"
+      CADDY_BASIC_PASSWORD: "{{ CADDY_DUMMY_BASIC_PASSWORD }}"
+
+      # домен где будет жить ру-часть
+      domain: "<домен_зарубежной_части>"
+      # хост сервера ру-части, по умолчанию domain
+      ansible_host: "{{ domain }}"
+
+      # это пользователь, под которым будет логиниться ansible на сервак
+      ansible_user: "root"
+      ansible_password: "<пароль_от_root>"
+      # если вход на сервак по ключу:
+      # - положи в папку ssh свой ключ
+      # - закомментируй ansible_password, раскомментируй ansible_ssh_private_key_file
+      # ansible_ssh_private_key_file: /root/.ssh/<название_файла_с_ssh_ключом>
+
+      # если ansible_user не root, то этот конфиг надо раскомментировать
+      # ansible_become: true
+      # ansible_become_user: root
+      # ansible_become_password: "<пароль_от_root>"
+
+      # закрываем всё ненужное файрволлами
+      UFW_RULES:
+        - { port: "22", proto: "tcp", rule: "allow" }
+        - { port: "22", proto: "udp", rule: "allow" }
+        - { port: "80", proto: "tcp", rule: "allow" }
+        - { port: "80", proto: "udp", rule: "allow" }
+        - { port: "443", proto: "tcp", rule: "allow" }
+        - { port: "443", proto: "udp", rule: "allow" }
+    # --- /зарубежная часть ---

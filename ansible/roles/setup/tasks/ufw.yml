@@ -1,0 +1,24 @@
+
+- name: "Install ufw system package"
+  apt:
+    state: "present"
+    name: [ ufw ]
+
+- name: "Reset ufw"
+  ufw:
+    state: "reset"
+
+- name: "Set rules"
+  ufw:
+    port: "{{ item.port }}"
+    proto: "{{ item.proto | default('any') }}"
+    rule: "{{ item.rule | default('allow') }}"
+  with_items: "{{ UFW_RULES | default([]) }}"
+
+- name: "Deny any other traffic"
+  ufw:
+    default: "deny"
+
+- name: "Enable firewall"
+  ufw:
+    state: "enabled"

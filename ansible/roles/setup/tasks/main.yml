@@ -1,0 +1,22 @@
+---
+
+- import_tasks: remove-trash.yml
+  tags: [remove-trash]
+
+- import_tasks: dns.yml
+  tags: [dns]
+
+- import_tasks: upgrade.yml
+  tags: [upgrade]
+
+- import_tasks: sysctl.yml
+  tags: [sysctl]
+
+- import_tasks: python.yml
+  tags: [python]
+
+- import_tasks: docker.yml
+  tags: [docker]
+
+- import_tasks: ufw.yml
+  tags: [ufw]

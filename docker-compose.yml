@@ -1,0 +1,9 @@
+services:
+  ansible:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    network_mode: host
+    volumes:
+      - "./ansible:/ansible"
+      - "./ssh:/root/.ssh"
