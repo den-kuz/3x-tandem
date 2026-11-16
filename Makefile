@@ -1,6 +1,6 @@
 $(shell touch ./env/.env)
 COMPOSE_RUN?=docker compose run --rm --env-from-file ./env/.env --env-from-file ./env/.env.example ansible
-COMPOSE_RUN_PLAYBOOK?=$(COMPOSE_RUN) ansible-playbook
+COMPOSE_RUN_PLAYBOOK?=$(COMPOSE_RUN) ansible-playbook -i inventory/vps.yml
 
 help:
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n"} /^[$$()% 0-9a-zA-Z_-]+:.*?##/ { printf "    \033[32m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m:\n", substr($$0, 5) } ' $(MAKEFILE_LIST)

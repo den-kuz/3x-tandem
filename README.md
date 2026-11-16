@@ -138,15 +138,15 @@ docker compose build
 Полная установка:
 
 ```powershell
-docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook setup.yml
+docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook -i inventory/vps.yml setup.yml
 ```
 
 Частично — те же теги, что в разделе «Запуск» выше, через `-t` и при необходимости `--limit`:
 
 ```powershell
-docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook setup.yml -t docker
-docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook setup.yml -v
-docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook setup.yml --limit ru
+docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook -i inventory/vps.yml setup.yml -t docker
+docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook -i inventory/vps.yml setup.yml -v
+docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook -i inventory/vps.yml setup.yml --limit ru
 ```
 
 Пересоздать БД панели: `-t 3x -e regenerate_db=1`.
@@ -167,6 +167,7 @@ ssh -L 22000:127.0.0.1:22055 ваш_логин@ваш-домен-ru
 
 | Ситуация | Действие |
 |----------|----------|
+| `no inventory was parsed` | Запускать команды **из корня проекта** (где `docker-compose.yml`), не забыть оба `--env-from-file`; в команде должно быть **`-i inventory/vps.yml`** (см. примеры в разделе Windows) |
 | Нет доступа к VPS | Проверить `.env`, пинг/SSH с вашего ПК |
 | Ключ SSH | Файл в `ssh/`, имя в `.env`; Linux/macOS: `chmod 600 ssh/имя_ключа`; Windows: при сбоях — пароль в `.env` |
 | Нет секретов | `make setup tag=3x` или полный `make setup` |
@@ -183,5 +184,5 @@ make setup
 или
 
 ```powershell
-docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook setup.yml -v
+docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook -i inventory/vps.yml setup.yml -v
 ```

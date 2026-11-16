@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    working_dir: /ansible
+    environment:
+      ANSIBLE_CONFIG: /ansible/ansible.cfg
     volumes:
       - "./ansible:/ansible"
       - "./env:/ansible_env"
