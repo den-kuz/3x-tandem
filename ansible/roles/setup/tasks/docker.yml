@@ -1,95 +1,87 @@
----
+# Установка и настройка Docker
 
-- name: "Install required system packages"
+- name: "Удаление устаревших пакетов Docker"
   apt:
-    state: "{{ 'latest' if (upgrade_docker|default(false)|bool) else 'present' }}"
+    name:
+      - "docker.io"
+      - "docker-doc"
+      - "docker-compose"
+      - "docker-compose-v2"
+      - "podman-docker"
+      - "containerd"
+      - "runc"
+    state: absent
+
+- name: "Удаление устаревшего файла docker.list"
+  file:
+    path: "/etc/apt/sources.list.d/docker.list"
+    state: absent
+
+- name: "Установка необходимых системных пакетов"
+  apt:
+    state: latest
     update_cache: true
     name:
-      - ca-certificates
-      - curl
-      - gnupg
+      - "ca-certificates"
+      - "curl"
+      - "gnupg"
 
-- name: "Add Docker GPG apt Key"
-  apt_key:
-    url: "https://download.docker.com/linux/ubuntu/gpg"
+- name: "Добавление APT репозитория Docker"
+  deb822_repository:
+    name: docker
+    types: deb
+    uris: "https://download.docker.com/linux/{{ 'ubuntu' if ansible_facts['distribution'] == 'Ubuntu' else 'debian' }}"
+    suites: "{{ ansible_facts['distribution_release'] }}"
+    components: stable
+    architectures: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64', 'armv7l': 'armhf'}.get(ansible_facts['architecture'], ansible_facts['architecture']) }}"
+    signed_by: "https://download.docker.com/linux/{{ 'ubuntu' if ansible_facts['distribution'] == 'Ubuntu' else 'debian' }}/gpg"
+    install_python_debian: true
     state: present
+    enabled: true
 
-- name: "Detect OS major version"
-  setup:
-    filter: ['ansible_distribution_release']
-
-- name: "Add Docker Repository"
-  apt_repository:
-    repo: 'deb https://download.docker.com/linux/ubuntu {{ ansible_facts["distribution_release"] }} stable'
-    state: "present"
-
-- name: "Populate service facts"
-  service_facts:
-  when: "upgrade_docker|default(false)|bool"
-
-- name: "Stopping services"
-  service:
-    name: "{{ item }}"
-    state: stopped
-  when: "(upgrade_docker|default(false)|bool) and ansible_facts.services[item] is defined"
-  with_items:
-    - docker
-    - containerd.service
-
-- name: "Install docker"
+- name: "Установка Docker"
   apt:
-    state: "{{ 'latest' if (upgrade_docker|default(false)|bool) else 'present' }}"
+    state: latest
     update_cache: true
-    name: [
-      docker-ce,
-      docker-ce-cli,
-      containerd.io,
-      docker-compose-plugin,
-      docker-buildx-plugin
-    ]
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+  register: docker_packages_install_result
 
-- name: "Ensure services started"
-  service:
-    name: "{{ item }}"
-    state: started
-  with_items:
-    - containerd.service
-    - docker
-
-- name: "Create {{ DOCKER_DATA_DIR }}"
+- name: "Создание директории /data/docker"
   file:
-    path: "{{ DOCKER_DATA_DIR }}"
+    path: "/data/docker"
     state: directory
+  register: docker_directory_create_result
 
-- name: Docker configs
+- name: "Копирование конфига docker-daemon.json"
   template:
     src: "docker-daemon.json"
     dest: "/etc/docker/daemon.json"
-  register: docker_config
+    mode: "0644"
+  register: docker_config_copy_result
 
-- name: "Restart Docker service"
+- name: "Перезапуск Docker"
   service:
-    name: docker
+    name: "{{ item }}"
     state: restarted
     enabled: yes
     masked: no
     daemon_reload: yes
-  when: docker_config.changed
+  with_items:
+    - containerd.service
+    - docker
 
-- name: "Add job docker system prune"
+- name: "Добавление cron-задачи на периодическую очистку неиспользуемых образов"
   cron:
-    user: 'root'
     name: 'docker system prune'
     special_time: daily
     job: 'docker system prune -af --filter "until=24h"'
     state: present
 
-- name: "Create a network"
+- name: "Создание docker-сети global-network"
   community.docker.docker_network:
     name: global-network
-
-- name: "Login"
-  community.docker.docker_login:
-    reauthorize: true
-    username: "{{ DOCKER_LOGIN_USER }}"
-    password: "{{ DOCKER_LOGIN_PASS }}"

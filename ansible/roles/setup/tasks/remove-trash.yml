@@ -1,17 +1,19 @@
-- name: "Stopping services"
+# Удаляет мусорные, возможно шпионские сервисы
+
+- name: "Остановка мусорных сервисов"
   service:
     name: "{{ item }}"
     state: stopped
   ignore_errors: true
+  failed_when: false
   with_items:
     - zabbix-agent
     - zabbix-agent-timeweb
 
-- name: "Remove packages"
+- name: "Удаление мусорных сервисов"
   apt:
     state: absent
     update_cache: true
-    name: [
-      zabbix-agent,
-      zabbix-agent-timeweb,
-    ]
+    name:
+      - zabbix-agent
+      - zabbix-agent-timeweb

@@ -1,2 +1,10 @@
 .idea/
+ansible/.cache/
 ansible/vault_password
+env/.env
+env/.env.secrets
+ssh/known_hosts
+ssh/known_hosts.old
+*.db-shm
+*.db-wal
+

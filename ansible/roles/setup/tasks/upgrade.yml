@@ -1,12 +1,26 @@
-- name: Update and upgrade apt packages
+# Обновление системных пакетов
+
+- name: "Обновление cписка пакетов"
   become: true
   apt:
-    upgrade: yes
     update_cache: yes
     cache_valid_time: 86400
 
-- name: Reboot
+- name: "Обновление пакетов"
+  become: true
+  apt:
+    upgrade: yes
+  register: apt_upgrade_result
+
+- name: "Удаление неиспользуемых пакетов"
+  become: true
+  apt:
+    autoremove: true
+  register: apt_autoremove_result
+
+- name: "Перезагрузка сервера при наличии изменений"
   become: true
   reboot:
     post_reboot_delay: 10
     reboot_timeout: 300
+  when: apt_upgrade_result is changed or apt_autoremove_result is changed

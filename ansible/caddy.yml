@@ -1,5 +1,0 @@
-- name: Caddy
-  hosts: ['ru-private', 'world-private']
-  gather_facts: false
-  roles:
-    - { role: caddy, tags: caddy }

@@ -1,0 +1,30 @@
+- name: "Запоминаем ansible_become"
+  set_fact:
+    become_backup: "{{ ansible_become | default(false, true) | bool }}"
+    ansible_become: false
+
+- name: "Поиск исполняемого файла sudo.ws или sudo"
+  raw: "command -v sudo.ws || command -v sudo"
+  register: "detected_sudo_exe"
+  changed_when: false
+  become: false
+
+- name: "Настройка ansible_become_exe для текущего хоста"
+  set_fact:
+    ansible_become: "{{ become_backup | bool }}"
+    ansible_become_exe: "{{ detected_sudo_exe.stdout | trim }}"
+
+- name: "Сбор фактов после настройки become"
+  setup:
+  become: true
+
+- name: "Проверка работы повышенных привилегий"
+  command: whoami
+  become: true
+  changed_when: false
+  register: whoami_out
+
+- name: "Вывод выбранного бинарника и результата"
+  debug:
+    msg: "Использован {{ ansible_become_exe }}, пользователь: {{ whoami_out.stdout }}"
+

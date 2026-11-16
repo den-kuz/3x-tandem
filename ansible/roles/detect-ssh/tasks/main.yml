@@ -1,0 +1,28 @@
+- name: "Проверка доступности SSH портов"
+  wait_for:
+    host: "{{ ansible_host | default(inventory_hostname, true) }}"
+    port: "{{ item }}"
+    search_regex: "SSH"
+    state: "started"
+    timeout: "3"
+  delegate_to: "localhost"
+  loop: "{{ ssh_candidate_ports }}"
+  register: "port_scan"
+  ignore_errors: true
+  failed_when: false
+
+- name: "Сохранение найденного порта в ansible_port"
+  set_fact:
+    ansible_port: "{{ (port_scan.results | selectattr('state', 'defined') | selectattr('state', 'equalto', 'started') | first).item | int }}"
+    port_found: true
+  when: "port_scan.results | selectattr('state', 'defined') | selectattr('state', 'equalto', 'started') | list | length > 0"
+
+- name: "Ошибка, если ни один порт не ответил"
+  fail:
+    msg: "Не удалось найти открытый SSH-порт из списка: {{ ssh_candidate_ports }}"
+  when: "port_found is not defined"
+
+- name: "Показать найденные порты"
+  debug:
+    msg: "{{ ansible_host | default(inventory_hostname, true)}} : {{ ansible_port }}"
+  when: "port_found is defined"

@@ -1,24 +1,31 @@
+# Установка и настройка файрволла
 
-- name: "Install ufw system package"
+- name: "Установка пакета ufw"
   apt:
-    state: "present"
+    state: "latest"
     name: [ ufw ]
 
-- name: "Reset ufw"
+- name: "Сброс файрволла"
   ufw:
     state: "reset"
 
-- name: "Set rules"
+- name: "Разрешаем SSH"
+  ufw:
+    proto: "tcp"
+    port: "{{ ansible_port }}"
+    rule: "allow"
+
+- name: "Установка дополнительных правил"
   ufw:
     port: "{{ item.port }}"
     proto: "{{ item.proto | default('any') }}"
     rule: "{{ item.rule | default('allow') }}"
   with_items: "{{ UFW_RULES | default([]) }}"
 
-- name: "Deny any other traffic"
+- name: "Запрещаем остальной трафик"
   ufw:
     default: "deny"
 
-- name: "Enable firewall"
+- name: "Включаем файрволл"
   ufw:
     state: "enabled"

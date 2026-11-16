@@ -1,8 +1,10 @@
-- name: Installing python3 packages
+# Установка и обновление python3
+
+- name: "Установка и обновление python3"
   apt:
-    state: "{{ 'latest' if (upgrade_python|default(false)|bool) else 'present' }}"
+    state: latest
     update_cache: true
     name:
-      - python3
-      - python3-pip
-      - python3-passlib
+      - "python3"
+      - "python3-pip"
+      - "python3-passlib"

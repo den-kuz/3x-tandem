@@ -1,5 +1,0 @@
-- name: 3x-UI
-  hosts: ['ru-private', 'world-private']
-  gather_facts: false
-  roles:
-    - { role: 3x-ui, tags: 3x-ui }

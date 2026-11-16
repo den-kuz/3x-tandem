@@ -1,0 +1,13 @@
+- name: "Секреты для {{ inventory_hostname }}"
+  host_env_secrets:
+    path: "{{ env_secrets_file }}"
+    prefix: "{{ inventory_hostname | upper }}_"
+    items: "{{ host_env_secrets_items }}"
+    generate: true
+  register: host_env_secrets
+  delegate_to: localhost
+
+- name: "Новые ключи для {{ inventory_hostname }}"
+  debug:
+    var: host_env_secrets.created
+  when: host_env_secrets.created | default([]) | length > 0

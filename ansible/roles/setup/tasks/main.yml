@@ -1,22 +1,32 @@
 ---
 
 - import_tasks: remove-trash.yml
-  tags: [remove-trash]
-
-- import_tasks: dns.yml
-  tags: [dns]
+  tags: [ trash ]
 
 - import_tasks: upgrade.yml
-  tags: [upgrade]
-
-- import_tasks: sysctl.yml
-  tags: [sysctl]
+  tags: [ upgrade ]
 
 - import_tasks: python.yml
-  tags: [python]
+  tags: [ python ]
 
 - import_tasks: docker.yml
-  tags: [docker]
+  tags: [ docker ]
+
+- import_tasks: dns.yml
+  tags: [ dns ]
+
+- import_tasks: sysctl.yml
+  tags: [ sysctl ]
+
+- include_tasks:
+    file: ssh-config.yml
+    apply:
+      tags: [ ssh ]
+  when:
+    - NEW_SSH_PORT is defined
+    - NEW_SSH_PORT is not none
+    - NEW_SSH_PORT | string | trim | length > 0
+  tags: [ ssh ]
 
 - import_tasks: ufw.yml
-  tags: [ufw]
+  tags: [ ufw ]

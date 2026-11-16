@@ -1,80 +1,82 @@
+# Основные настройки производятся в .env. Как правило, тут ничего трогать не нужно
+
 all:
   vars:
-    # --- caddy ---
-    CADDY_DUMMY_BASIC_USER: "dummy"
-    CADDY_DUMMY_BASIC_PASSWORD: "<пароль_для_маскировки_под_basic_auth>"
-    # --- /caddy ---
+    # --- российская часть
+    RU_SERVER_DOMAIN: "{{ lookup('env', 'RU_SERVER_DOMAIN') }}"
+    RU_SERVER_SSH_PORT: "{{ lookup('env', 'RU_SERVER_SSH_PORT') | default('22', true) }}"
+    RU_SERVER_NEW_SSH_PORT: "{{ lookup('env', 'RU_SERVER_NEW_SSH_PORT') | default(omit, true) }}"
+    RU_SERVER_USER: "{{ lookup('env', 'RU_SERVER_USER') }}"
+    RU_SERVER_PASSWORD: "{{ lookup('env', 'RU_SERVER_PASSWORD') | default('', true) }}"
+    RU_SERVER_SSH_FILE_NAME: "{{ lookup('env', 'RU_SERVER_SSH_FILE_NAME') | default('', true) }}"
+    RU_SERVER_AUTH_METHOD: "{{ lookup('env', 'RU_SERVER_AUTH_METHOD') | default('password', true) }}"
+    RU_SERVER_BECOME: "{{ lookup('env', 'RU_SERVER_BECOME') | default('0', true) | bool }}"
+    RU_SERVER_BECOME_USER: "{{ lookup('env', 'RU_SERVER_BECOME_USER') | default('root', true) }}"
+    RU_SERVER_BECOME_PASSWORD: "{{ lookup('env', 'RU_SERVER_BECOME_PASSWORD') | default('', true) }}"
+    RU_SERVER_3X_TG_BOT_TOKEN: "{{ lookup('env', 'RU_SERVER_3X_TG_BOT_TOKEN') | default('', true) }}"
+    RU_SERVER_3X_TG_BOT_CHAT_ID: "{{ lookup('env', 'RU_SERVER_3X_TG_BOT_CHAT_ID') | default('0', true) }}"
+    # ---
 
-    # --- docker ---
-    DOCKER_DATA_DIR: "/data/docker/"
-    DOCKER_LOGIN_USER: "<пользователь_dockerhub>"
-    DOCKER_LOGIN_PASS: "<персональный_токен_dockerhub>"
-    # --- /docker ---
+    # --- зарубежная часть
+    WORLD_SERVER_DOMAIN: "{{ lookup('env', 'WORLD_SERVER_DOMAIN') }}"
+    WORLD_SERVER_SSH_PORT: "{{ lookup('env', 'WORLD_SERVER_SSH_PORT') | default('22', true) }}"
+    WORLD_SERVER_NEW_SSH_PORT: "{{ lookup('env', 'WORLD_SERVER_NEW_SSH_PORT') | default(omit, true) }}"
+    WORLD_SERVER_USER: "{{ lookup('env', 'WORLD_SERVER_USER') }}"
+    WORLD_SERVER_PASSWORD: "{{ lookup('env', 'WORLD_SERVER_PASSWORD') | default('', true) }}"
+    WORLD_SERVER_SSH_FILE_NAME: "{{ lookup('env', 'WORLD_SERVER_SSH_FILE_NAME') | default('', true) }}"
+    WORLD_SERVER_AUTH_METHOD: "{{ lookup('env', 'WORLD_SERVER_AUTH_METHOD') | default('password', true) }}"
+    WORLD_SERVER_BECOME: "{{ lookup('env', 'WORLD_SERVER_BECOME') | default('0', true) | bool }}"
+    WORLD_SERVER_BECOME_USER: "{{ lookup('env', 'WORLD_SERVER_BECOME_USER') | default('root', true) }}"
+    WORLD_SERVER_BECOME_PASSWORD: "{{ lookup('env', 'WORLD_SERVER_BECOME_PASSWORD') | default('', true) }}"
+    WORLD_SERVER_3X_TG_BOT_TOKEN: "{{ lookup('env', 'WORLD_SERVER_3X_TG_BOT_TOKEN') | default('', true) }}"
+    WORLD_SERVER_3X_TG_BOT_CHAT_ID: "{{ lookup('env', 'WORLD_SERVER_3X_TG_BOT_CHAT_ID') | default('0', true) }}"
+    # ---
 
+    CADDY_BASIC_PASSWORD: "{{ lookup('env', 'CADDY_DUMMY_BASIC_PASSWORD') | default('', true) }}"
+    PANEL_PASSWORD: "{{ lookup('env', 'PANEL_PASSWORD') | default('', true) }}"
 vps:
   hosts:
-    # --- зарубежная часть ---
-    world-private:
-      CADDY_BASIC_USER: "{{ CADDY_DUMMY_BASIC_USER }}"
-      CADDY_BASIC_PASSWORD: "{{ CADDY_DUMMY_BASIC_PASSWORD }}"
+    ru:
+      ansible_host: "{{ RU_SERVER_DOMAIN }}"
+      ansible_port: "{{ RU_SERVER_SSH_PORT }}"
+      ansible_user: "{{ RU_SERVER_USER }}"
+      ansible_password: "{{ RU_SERVER_PASSWORD if (RU_SERVER_AUTH_METHOD | default('', true) == 'password') else omit }}"
+      ansible_ssh_private_key_file: "{{ ('/root/.ssh/' ~ RU_SERVER_SSH_FILE_NAME) if (RU_SERVER_AUTH_METHOD | default('', true) == 'ssh' and RU_SERVER_SSH_FILE_NAME | default('', true) | length > 0) else omit }}"
+      ansible_become: "{{ RU_SERVER_BECOME | default(false, true) }}"
+      ansible_become_user: "{{ RU_SERVER_BECOME_USER | default(omit, true) }}"
+      ansible_become_password: "{{ RU_SERVER_BECOME_PASSWORD | default(omit, true) }}"
+      NEW_SSH_PORT: "{{ RU_SERVER_NEW_SSH_PORT | default(omit, true) }}"
+      DOMAIN: "{{ RU_SERVER_DOMAIN }}"
+      PANEL_3X_SUBS_PORT: "21065"
+      PANEL_3X_TG_BOT_TOKEN: "{{ RU_SERVER_3X_TG_BOT_TOKEN }}"
+      PANEL_3X_TG_BOT_CHAT_ID: "{{ RU_SERVER_3X_TG_BOT_CHAT_ID }}"
 
-      # домен где будет жить зарубежная часть
-      domain: "<домен_зарубежной_части>"
-      # хост сервера зарубежной части, по умолчанию domain
-      ansible_host: "{{ domain }}"
-
-      # это пользователь, под которым будет логиниться ansible на сервак
-      ansible_user: "root"
-      ansible_password: "<пароль_от_root>"
-      # если вход на сервак по ключу:
-      # - положи в папку ssh свой ключ
-      # - закомментируй ansible_password, раскомментируй ansible_ssh_private_key_file
-      # ansible_ssh_private_key_file: /root/.ssh/<название_файла_с_ssh_ключом>
-
-      # если ansible_user не root, то этот конфиг надо раскомментировать
-      # ansible_become: true
-      # ansible_become_user: root
-      # ansible_become_password: "<пароль_от_root>"
-
-      # закрываем всё ненужное файрволлами
       UFW_RULES:
-        - { port: "22", proto: "tcp", rule: "allow" }
-        - { port: "22", proto: "udp", rule: "allow" }
         - { port: "80", proto: "tcp", rule: "allow" }
         - { port: "80", proto: "udp", rule: "allow" }
         - { port: "443", proto: "tcp", rule: "allow" }
         - { port: "443", proto: "udp", rule: "allow" }
-    # --- /зарубежная часть ---
+        - { port: "{{ PANEL_3X_SUBS_PORT }}", proto: "tcp", rule: "allow" } # для подписок
+        - { port: "{{ PANEL_3X_SUBS_PORT }}", proto: "udp", rule: "allow" } # для подписок
+        - { port: "31615", proto: "tcp", rule: "allow" } # для wg
+        - { port: "31615", proto: "udp", rule: "allow" } # для wg
 
-    # --- ru-часть ---
-    ru-private:
-      CADDY_BASIC_USER: "{{ CADDY_DUMMY_BASIC_USER }}"
-      CADDY_BASIC_PASSWORD: "{{ CADDY_DUMMY_BASIC_PASSWORD }}"
+    world:
+      ansible_host: "{{ WORLD_SERVER_DOMAIN }}"
+      ansible_port: "{{ WORLD_SERVER_SSH_PORT }}"
+      ansible_user: "{{ WORLD_SERVER_USER }}"
+      ansible_password: "{{ WORLD_SERVER_PASSWORD if (WORLD_SERVER_AUTH_METHOD | default('', true) == 'password') else omit }}"
+      ansible_ssh_private_key_file: "{{ ('/root/.ssh/' ~ WORLD_SERVER_SSH_FILE_NAME) if (WORLD_SERVER_AUTH_METHOD | default('', true) == 'ssh' and WORLD_SERVER_SSH_FILE_NAME | default('', true) | length > 0) else omit }}"
+      ansible_become: "{{ WORLD_SERVER_BECOME | default(false, true) }}"
+      ansible_become_user: "{{ WORLD_SERVER_BECOME_USER | default(omit, true) }}"
+      ansible_become_password: "{{ WORLD_SERVER_BECOME_PASSWORD | default(omit, true) }}"
+      NEW_SSH_PORT: "{{ WORLD_SERVER_NEW_SSH_PORT | default(omit, true) }}"
+      DOMAIN: "{{ WORLD_SERVER_DOMAIN }}"
+      PANEL_3X_TG_BOT_TOKEN: "{{ WORLD_SERVER_3X_TG_BOT_TOKEN }}"
+      PANEL_3X_TG_BOT_CHAT_ID: "{{ WORLD_SERVER_3X_TG_BOT_CHAT_ID }}"
 
-      # домен где будет жить ру-часть
-      domain: "<домен_зарубежной_части>"
-      # хост сервера ру-части, по умолчанию domain
-      ansible_host: "{{ domain }}"
-
-      # это пользователь, под которым будет логиниться ansible на сервак
-      ansible_user: "root"
-      ansible_password: "<пароль_от_root>"
-      # если вход на сервак по ключу:
-      # - положи в папку ssh свой ключ
-      # - закомментируй ansible_password, раскомментируй ansible_ssh_private_key_file
-      # ansible_ssh_private_key_file: /root/.ssh/<название_файла_с_ssh_ключом>
-
-      # если ansible_user не root, то этот конфиг надо раскомментировать
-      # ansible_become: true
-      # ansible_become_user: root
-      # ansible_become_password: "<пароль_от_root>"
-
-      # закрываем всё ненужное файрволлами
       UFW_RULES:
-        - { port: "22", proto: "tcp", rule: "allow" }
-        - { port: "22", proto: "udp", rule: "allow" }
         - { port: "80", proto: "tcp", rule: "allow" }
         - { port: "80", proto: "udp", rule: "allow" }
         - { port: "443", proto: "tcp", rule: "allow" }
         - { port: "443", proto: "udp", rule: "allow" }
-    # --- /зарубежная часть ---

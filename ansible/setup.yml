@@ -1,5 +1,36 @@
-- name: Base server setup
-  hosts: vps
+- name: "Определение SSH порта"
+  hosts: all
   gather_facts: false
+  tags: [always]
+  roles:
+    - { role: detect-ssh }
+
+- name: "Определение become_exe"
+  hosts: all
+  gather_facts: false
+  tags: [always]
+  roles:
+    - { role: detect-become }
+
+- name: "Базовая настройка сервера"
+  hosts: all
+  gather_facts: false
+  tags: [setup]
   roles:
     - { role: setup }
+
+- name: "Установка Caddy"
+  hosts: all
+  gather_facts: false
+  tags: [caddy]
+  roles:
+    - { role: caddy }
+
+- name: "Установка 3X-UI"
+  hosts: [world, ru]
+  serial: 1
+  gather_facts: false
+  tags: 3x
+  roles:
+    - role: 3x-secrets
+    - role: 3x-ui

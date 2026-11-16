@@ -1,4 +1,67 @@
-- name: "Create 3X-UI data dir"
+- name: "Проверяем наличие БД на сервере"
+  stat:
+    path: "{{ xui_db_path }}"
+  register: xui_db_stat
+
+- name: "Определяем необходимость подготовки/заливка БД"
+  set_fact:
+    regenerate_3x_db: >-
+      {{
+        regenerate_db | default(false) | bool
+        or not (xui_db_stat.stat.exists | default(false) | bool)
+      }}
+
+- name: "Подготовка SQLite и секретов"
+  when: regenerate_3x_db
+  block:
+    - name: "Проверяем заполненность PANEL_PASSWORD"
+      assert:
+        that:
+          - PANEL_PASSWORD is defined
+          - PANEL_PASSWORD is not none
+          - PANEL_PASSWORD | string | trim | length > 0
+        fail_msg: "Задайте PANEL_PASSWORD в .env (см. env/.env.example)"
+
+    - name: "Секреты из .env.secrets"
+      host_env_secrets:
+        path: "{{ env_secrets_file }}"
+      register: host_env_secrets
+      delegate_to: localhost
+
+    - name: "Собираем db_replace_dict"
+      set_fact:
+        db_replace_dict: >-
+          {{
+            host_env_secrets.vars | combine({
+              'SERVER_DOMAIN': DOMAIN,
+              'RU_SERVER_DOMAIN': RU_SERVER_DOMAIN,
+              'WORLD_SERVER_DOMAIN': WORLD_SERVER_DOMAIN,
+              'SUBS_PORT': PANEL_3X_SUBS_PORT | default(omit),
+              'TG_BOT_ENABLE': (
+                'true' if PANEL_3X_TG_BOT_TOKEN is defined and PANEL_3X_TG_BOT_TOKEN | string | trim | length > 0 else 'false'
+              ),
+              'TG_BOT_TOKEN': PANEL_3X_TG_BOT_TOKEN | default('', true),
+              'TG_BOT_CHAT_ID': PANEL_3X_TG_BOT_CHAT_ID | default('0', true),
+              'ADMIN_PASSWORD': PANEL_PASSWORD | string | trim | password_hash('bcrypt'),
+            })
+          }}
+
+    - name: "Удаляем директории 3X-UI"
+      file:
+        path: "/data/3x-ui/{{ item }}"
+        state: absent
+      with_items:
+        - db
+        - cert
+
+    - name: "Подготавливаем SQLite шаблон"
+      sqlite_replace_placeholders:
+        src: "{{ role_path }}/templates/template-{{ inventory_hostname }}.db"
+        dest: "{{ playbook_dir }}/.cache/x-ui-{{ inventory_hostname }}.db"
+        replace: "{{ db_replace_dict }}"
+      delegate_to: localhost
+
+- name: "Создаём директории для 3X-UI"
   file:
     path: "/data/3x-ui/{{ item }}"
     state: directory
@@ -6,25 +69,32 @@
     - db
     - cert
 
-- name: "Copy template db"
-  copy:
-    src: "templates/template.x-ui.db"
-    dest: /data/3x-ui/db/x-ui.db
-
-- name: "Create 3X-UI container"
+- name: "Удаляем старый docker-контейнер 3X-UI"
   community.docker.docker_container:
-    state: started
-    pull: true
-    restart_policy: "always"
+    state: absent
+    name: "3x-ui"
+
+- name: "Копируем БД"
+  when: regenerate_3x_db
+  copy:
+    src: "{{ playbook_dir }}/.cache/x-ui-{{ inventory_hostname }}.db"
+    dest: "{{ xui_db_path }}"
+    mode: "0600"
+
+- name: "Создаём docker-контейнер 3X-UI"
+  community.docker.docker_container:
     recreate: true
     restart: true
     name: "3x-ui"
     hostname: "3x-ui"
-    image: "ghcr.io/mhsanaei/3x-ui:v2.6.6"
+    image: "ghcr.io/mhsanaei/3x-ui:v3.11.0"
     env:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      XUI_DB_TYPE: "sqlite"
     volumes:
       - "/data/3x-ui/db/:/etc/x-ui/"
       - "/data/3x-ui/cert/:/root/cert/"
     network_mode: host
+    capabilities:
+      - NET_RAW

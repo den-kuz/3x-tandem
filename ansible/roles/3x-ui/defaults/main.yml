@@ -1,0 +1,2 @@
+force_regenerate_db: false
+xui_db_path: /data/3x-ui/db/x-ui.db

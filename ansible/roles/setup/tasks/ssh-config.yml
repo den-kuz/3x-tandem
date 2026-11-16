@@ -1,0 +1,118 @@
+- name: "Проверяем корректность переменной NEW_SSH_PORT"
+  assert:
+    that:
+      - NEW_SSH_PORT is defined
+      - NEW_SSH_PORT is not none
+      - NEW_SSH_PORT | string | trim | length > 0
+      - NEW_SSH_PORT | int >= 1
+      - NEW_SSH_PORT | int <= 65535
+    fail_msg: "Некорректный порт в переменной NEW_SSH_PORT"
+
+- name: "Собираем информацию о службах"
+  service_facts:
+
+- name: "Определяем параметры SSH"
+  set_fact:
+    ssh_has_socket: >-
+      {{
+        'ssh.socket' in ansible_facts.services and
+        ansible_facts.services['ssh.socket'].state == 'running'
+      }}
+    ssh_service_name: "{{ 'sshd.service' if ansible_facts.os_family == 'RedHat' else 'ssh.service' }}"
+
+- name: "Убеждаемся, что директория /etc/ssh/sshd_config.d существует"
+  file:
+    path: /etc/ssh/sshd_config.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "Убираем явное указание Port из основного sshd_config"
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^\s*Port\s+'
+    state: absent
+
+- name: "Задаём новый SSH-порт"
+  copy:
+    dest: /etc/ssh/sshd_config.d/00-port-config.conf
+    content: |
+      Port {{ NEW_SSH_PORT }}
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: "Разрешаем новый SSH-порт в UFW (если UFW активен)"
+  community.general.ufw:
+    proto: "tcp"
+    port: "{{ NEW_SSH_PORT | string }}"
+    rule: "allow"
+  when:
+    - "'ufw.service' in ansible_facts.services"
+    - ansible_facts.services['ufw.service'].state == 'running'
+
+- name: "Настраиваем ssh.socket (только для систем с socket activation)"
+  when: ssh_has_socket
+  block:
+    - name: "Создаём директорию override для ssh.socket"
+      file:
+        path: /etc/systemd/system/ssh.socket.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: "Переопределяем ListenStream для ssh.socket"
+      copy:
+        dest: /etc/systemd/system/ssh.socket.d/override.conf
+        content: |
+          [Socket]
+          ListenStream=
+          ListenStream={{ NEW_SSH_PORT }}
+        owner: root
+        group: root
+        mode: '0644'
+
+- name: "Проверяем синтаксис конфигурации SSH перед применением"
+  command: sshd -t
+  changed_when: false
+
+- name: "Переключаем порт через ssh.socket (если сокет используется)"
+  when: ssh_has_socket
+  block:
+    - name: "Останавливаем ssh.service перед перезапуском сокета"
+      systemd_service:
+        name: "{{ ssh_service_name }}"
+        state: stopped
+
+    - name: "Перезапускаем ssh.socket с новым портом"
+      systemd_service:
+        name: ssh.socket
+        daemon_reload: true
+        masked: false
+        enabled: true
+        state: restarted
+
+- name: "Перезапускаем службу SSH (если сокет не используется)"
+  systemd_service:
+    name: "{{ ssh_service_name }}"
+    enabled: true
+    state: restarted
+  when: not ssh_has_socket
+
+- name: "Ждём доступности нового SSH-порта"
+  wait_for:
+    host: "{{ ansible_host | default(inventory_hostname) }}"
+    port: "{{ NEW_SSH_PORT }}"
+    state: started
+    timeout: 30
+  delegate_to: localhost
+  become: false
+
+- name: "Переключаем Ansible на новый порт"
+  set_fact:
+    ansible_port: "{{ NEW_SSH_PORT }}"
+
+- name: "Сбрасываем SSH-соединение Ansible"
+  meta: reset_connection

@@ -1,5 +1,5 @@
 {
-  "data-root": "{{ DOCKER_DATA_DIR }}",
+  "data-root": "/data/docker",
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "50m",
