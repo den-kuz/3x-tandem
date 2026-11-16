@@ -1,3 +1,27 @@
+- name: "Контроллер Ansible: права на /root/.ssh"
+  hosts: localhost
+  gather_facts: false
+  connection: local
+  tags: [always]
+  tasks:
+    - name: "Права на /root/.ssh (том с Windows часто отдаёт слишком открытый mode)"
+      shell: |
+        set -e
+        mkdir -p /root/.ssh
+        chmod 700 /root/.ssh
+        for f in /root/.ssh/*; do
+          [ -f "$f" ] || continue
+          base=$(basename "$f")
+          case "$base" in
+            known_hosts) chmod 644 "$f" ;;
+            *.pub) chmod 644 "$f" ;;
+            *) chmod 600 "$f" ;;
+          esac
+        done
+      args:
+        executable: /bin/sh
+      changed_when: false
+
 - name: "Определение SSH порта"
   hosts: all
   gather_facts: false
