@@ -133,9 +133,16 @@ ssh -L 22000:127.0.0.1:22055 ваш_логин@ваш-домен-ru
 
 ## Windows
 
-1. Установите **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** и дождитесь, пока он запустится.
-2. Склонируйте проект в обычную папку, например `C:\Users\user\3x-tandem`. Рядом должны лежать `env\.env` и при необходимости ключи в `ssh\`.
-3. Откройте **PowerShell** или **Windows Terminal** в этой папке.
+1. Установите Git: `winget install --id Git.Git -e --source winget`
+2. Установите wsl: `wsl --install`
+3. Установите **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** и дождитесь, пока он запустится, может потребоваться перезагрузка
+4. Перейдите в PowerShell
+5. Выполните `git clone https://github.com/den-kuz/3x-tandem.git $HOME/3x-tandem`
+6. Скопируйте `.env.example` в `.env` и заполните `.env` согласно подсказкам в файле и при необходимости добавьте файлы в директорию `ssh`
+7. Перейдите в PowerShell
+8. Выполните `cd $HOME/3x-tandem`
+9. Запустите `docker compose build`
+10. Запустите `docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook -i inventory/vps.yml setup.yml`
 
 Сборка (один раз):
 
@@ -144,7 +151,6 @@ docker compose build
 ```
 
 Полная установка:
-
 ```powershell
 docker compose run --rm --env-from-file .\env\.env --env-from-file .\env\.env.example ansible ansible-playbook -i inventory/vps.yml setup.yml
 ```
@@ -166,8 +172,6 @@ ssh -L 22000:127.0.0.1:22055 ваш_логин@ваш-домен-ru
 ```
 
 Браузер: **http://localhost:22000/**
-
-**SSH-ключ:** файл в `ssh\`, имя в `.env`. Если Ansible не может подключиться по ключу, задайте в `.env` вход по **паролю** — на Windows с ключами в Docker так бывает проще всего.
 
 ---
 
